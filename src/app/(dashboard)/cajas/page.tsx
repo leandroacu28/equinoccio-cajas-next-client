@@ -7,55 +7,35 @@ import * as XLSX from "xlsx";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-interface FamiliaProducto {
+interface Caja {
   id: number;
   descripcion: string;
-}
-
-interface UnidadMedida {
-  id: number;
-  descripcion: string;
-}
-
-interface Producto {
-  id: number;
-  codigo: string;
-  descripcion: string;
+  saldo: number;
   activo: boolean;
-  familiaId: number;
-  unidadMedidaId: number;
-  familia: FamiliaProducto;
-  unidadMedida: UnidadMedida;
   createdAt: string;
 }
 
 const emptyForm = {
-  codigo: "",
   descripcion: "",
-  familiaId: 0,
-  unidadMedidaId: 0,
+  saldo: 0,
   activo: true,
 };
 
-export default function ProductosPage() {
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [familias, setFamilias] = useState<FamiliaProducto[]>([]);
-  const [unidades, setUnidades] = useState<UnidadMedida[]>([]);
+export default function CajasPage() {
+  const [cajas, setCajas] = useState<Caja[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [selected, setSelected] = useState<Producto | null>(null);
+  const [selected, setSelected] = useState<Caja | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
-  const [familiaFilter, setFamiliaFilter] = useState("Todas");
 
   // Sort state
-  type SortKey = "codigo" | "descripcion" | "familia" | "unidadMedida" | "activo";
-  const [sortKey, setSortKey] = useState<SortKey>("codigo");
+  type SortKey = "descripcion" | "saldo" | "createdAt" | "activo";
+  const [sortKey, setSortKey] = useState<SortKey>("descripcion");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Pagination
@@ -73,25 +53,12 @@ export default function ProductosPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [prodRes, famRes, uniRes] = await Promise.all([
-        fetch(`${API_URL}/productos`, { headers: headers() }),
-        fetch(`${API_URL}/familias-productos`, { headers: headers() }),
-        fetch(`${API_URL}/unidades-medida`, { headers: headers() }),
-      ]);
-
-      if (!prodRes.ok || !famRes.ok || !uniRes.ok) throw new Error("Error al cargar datos");
-
-      const [prodData, famData, uniData] = await Promise.all([
-        prodRes.json(),
-        famRes.json(),
-        uniRes.json(),
-      ]);
-
-      setProductos(prodData);
-      setFamilias(famData);
-      setUnidades(uniData);
-    } catch {
-      setError("Error al cargar los datos de productos");
+      const res = await fetch(`${API_URL}/cajas`, { headers: headers() });
+      if (!res.ok) throw new Error("Error al cargar cajas");
+      const data = await res.json();
+      setCajas(data);
+    } catch (err: any) {
+      showError("Error", err.message);
     } finally {
       setLoading(false);
     }
@@ -104,7 +71,7 @@ export default function ProductosPage() {
     fetchData();
   }, [fetchData]);
 
-  const canEdit = user?.rol === 'Administrador' || user?.permissions?.find((p: any) => p.section === 'productos')?.access === 'FULL_ACCESS';
+  const canEdit = user?.rol === 'Administrador' || user?.permissions?.find((p: any) => p.section === 'cajas')?.access === 'FULL_ACCESS';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -126,25 +93,17 @@ export default function ProductosPage() {
   }, []);
 
   const openCreate = () => {
-    setForm({
-      ...emptyForm,
-      familiaId: familias[0]?.id || 0,
-      unidadMedidaId: unidades[0]?.id || 0,
-    });
-    setError("");
+    setForm(emptyForm);
     setModal("create");
   };
 
-  const openEdit = (p: Producto) => {
-    setSelected(p);
+  const openEdit = (c: Caja) => {
+    setSelected(c);
     setForm({
-      codigo: p.codigo,
-      descripcion: p.descripcion,
-      familiaId: p.familiaId,
-      unidadMedidaId: p.unidadMedidaId,
-      activo: p.activo,
+      descripcion: c.descripcion,
+      saldo: Number(c.saldo),
+      activo: c.activo,
     });
-    setError("");
     setModal("edit");
     setOpenDropdownId(null);
   };
@@ -152,29 +111,26 @@ export default function ProductosPage() {
   const closeModal = () => {
     setModal(null);
     setSelected(null);
-    setError("");
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
     try {
-      const res = await fetch(`${API_URL}/productos`, {
+      const res = await fetch(`${API_URL}/cajas`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(form),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Error al crear producto");
+        const d = await res.json();
+        throw new Error(d.message || "Error al crear caja");
       }
       await fetchData();
       closeModal();
-      showSuccess("Producto creado", "El producto ha sido creado correctamente");
+      showSuccess("Caja creada", "La caja ha sido creada correctamente");
     } catch (err: any) {
-      showError("Error al crear producto", err.message);
-      setError(err.message);
+      showError("Error", err.message);
     } finally {
       setSaving(false);
     }
@@ -184,59 +140,55 @@ export default function ProductosPage() {
     e.preventDefault();
     if (!selected) return;
     setSaving(true);
-    setError("");
     try {
-      const res = await fetch(`${API_URL}/productos/${selected.id}`, {
+      const res = await fetch(`${API_URL}/cajas/${selected.id}`, {
         method: "PATCH",
         headers: headers(),
         body: JSON.stringify(form),
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Error al editar producto");
+        throw new Error(d.message || "Error al actualizar caja");
       }
       await fetchData();
       closeModal();
-      showSuccess("Producto actualizado", "El producto ha sido actualizado correctamente");
+      showSuccess("Caja actualizada", "La caja ha sido actualizada correctamente");
     } catch (err: any) {
-      showError("Error al editar producto", err.message);
-      setError(err.message);
+      showError("Error", err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggleStatus = async (p: Producto) => {
+  const handleToggleStatus = async (c: Caja) => {
     const confirmed = await showConfirm({
-      title: `¿${p.activo ? 'Desactivar' : 'Activar'} producto?`,
-      text: `¿Estás seguro de que deseas ${p.activo ? 'desactivar' : 'activar'} "${p.descripcion}"?`,
-      confirmButtonText: p.activo ? "Sí, desactivar" : "Sí, activar",
-      confirmButtonColor: p.activo ? "#ef4444" : "#10b981",
+      title: `¿${c.activo ? 'Desactivar' : 'Activar'} caja?`,
+      text: `¿Estás seguro de que deseas ${c.activo ? 'desactivar' : 'activar'} "${c.descripcion}"?`,
+      confirmButtonText: c.activo ? "Sí, desactivar" : "Sí, activar",
+      confirmButtonColor: c.activo ? "#ef4444" : "#10b981",
     });
 
     if (!confirmed) return;
 
     setOpenDropdownId(null);
     try {
-      const res = await fetch(`${API_URL}/productos/${p.id}`, {
+      const res = await fetch(`${API_URL}/cajas/${c.id}`, {
         method: "PATCH",
         headers: headers(),
-        body: JSON.stringify({ activo: !p.activo }),
+        body: JSON.stringify({ activo: !c.activo }),
       });
       if (!res.ok) throw new Error("Error al cambiar estado");
       await fetchData();
-      showSuccess("Estado actualizado", `El producto ahora está ${!p.activo ? 'activo' : 'inactivo'}`);
+      showSuccess("Estado actualizado", `La caja ahora está ${!c.activo ? 'activa' : 'inactiva'}`);
     } catch (err: any) {
       showError("Error", err.message);
     }
   };
 
-  const filtered = productos.filter((p) => {
-    const matchesSearch = p.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.codigo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "Todos" || (statusFilter === "Activo" ? p.activo : !p.activo);
-    const matchesFamilia = familiaFilter === "Todas" || p.familiaId === Number(familiaFilter);
-    return matchesSearch && matchesStatus && matchesFamilia;
+  const filtered = cajas.filter((c) => {
+    const matchesSearch = c.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "Todos" || (statusFilter === "Activo" ? c.activo : !c.activo);
+    return matchesSearch && matchesStatus;
   });
 
   const handleSort = (key: SortKey) => {
@@ -246,30 +198,29 @@ export default function ProductosPage() {
 
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
-    if (sortKey === "activo") cmp = Number(a.activo) - Number(b.activo);
-    else if (sortKey === "familia") cmp = a.familia.descripcion.localeCompare(b.familia.descripcion);
-    else if (sortKey === "unidadMedida") cmp = a.unidadMedida.descripcion.localeCompare(b.unidadMedida.descripcion);
+    if (sortKey === "saldo") cmp = Number(a.saldo) - Number(b.saldo);
+    else if (sortKey === "activo") cmp = Number(a.activo) - Number(b.activo);
+    else if (sortKey === "createdAt") cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     else cmp = a[sortKey].localeCompare(b[sortKey]);
     return sortDir === "asc" ? cmp : -cmp;
   });
 
   const totalItems = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const totalPages = Math.ceil(totalItems / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const paginated = sorted.slice(startIndex, startIndex + pageSize);
 
   const handleExportExcel = () => {
-    const data = sorted.map(p => ({
-      Código: p.codigo,
-      Descripción: p.descripcion,
-      Familia: p.familia.descripcion,
-      Unidad: p.unidadMedida.descripcion,
-      Estado: p.activo ? "Activo" : "Inactivo",
+    const data = sorted.map(c => ({
+      Descripción: c.descripcion,
+      Saldo: c.saldo,
+      "Fecha Creación": new Date(c.createdAt).toLocaleDateString(),
+      Estado: c.activo ? "Activo" : "Inactivo",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Productos");
-    XLSX.writeFile(wb, "productos.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Cajas");
+    XLSX.writeFile(wb, "cajas.xlsx");
   };
 
   const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white transition-all";
@@ -279,8 +230,8 @@ export default function ProductosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Productos</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total de productos registrados: {totalItems}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Cajas</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total de cajas registradas: {totalItems}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={handleExportExcel} className="inline-flex items-center gap-2 rounded-xl bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all hover:-translate-y-0.5">
@@ -292,28 +243,24 @@ export default function ProductosPage() {
           {canEdit && (
             <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Nuevo Producto
+              Nueva Caja
             </button>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="relative">
           <input
             type="text"
-            placeholder="Buscar por código o descripción..."
+            placeholder="Buscar por descripción..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
           <svg className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         </div>
-        <select value={familiaFilter} onChange={(e) => setFamiliaFilter(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-          <option value="Todas">Todas las familias</option>
-          {familias.map(f => <option key={f.id} value={f.id}>{f.descripcion}</option>)}
-        </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white">
           <option value="Todos">Todos los estados</option>
           <option value="Activo">Activos</option>
@@ -325,38 +272,46 @@ export default function ProductosPage() {
       {loading ? (
         <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600"></div></div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-all">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="overflow-visible">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
-                  {["codigo", "descripcion", "familia", "unidadMedida", "activo"].map((key) => (
-                    <th key={key} onClick={() => handleSort(key as SortKey)} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-white">
-                      {key === "activo" ? "Estado" : key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                  {[
+                    { key: "descripcion", label: "Descripción" },
+                    { key: null, label: "Asignado a" },
+                    { key: "saldo", label: "Saldo" },
+                    { key: "createdAt", label: "Fecha Creación" },
+                    { key: "activo", label: "Estado" },
+                  ].map((col) => (
+                    <th key={col.label} onClick={() => col.key && handleSort(col.key as SortKey)} className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 ${col.key ? 'cursor-pointer hover:text-gray-700 dark:hover:text-white' : ''}`}>
+                      {col.label}
                     </th>
                   ))}
                   <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {paginated.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-white">{p.codigo}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{p.descripcion}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{p.familia.descripcion}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{p.unidadMedida.descripcion}</td>
+                {paginated.map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{c.descripcion}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 dark:text-emerald-400 font-bold">
+                      ${Number(c.saldo).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(c.createdAt).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${p.activo 
+                      <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${c.activo 
                         ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-400/30" 
                         : "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-400/30"}`}>
-                        {p.activo ? "Activo" : "Inactivo"}
+                        {c.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       {canEdit && (
                         <div className="relative flex justify-center">
                           <button 
-                            onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === p.id ? null : p.id); }} 
+                            onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === c.id ? null : c.id); }} 
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                           >
                             <span className="sr-only">Open menu</span>
@@ -364,24 +319,31 @@ export default function ProductosPage() {
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                             </svg>
                           </button>
-                          {openDropdownId === p.id && (
-                            <div ref={dropdownRef} className="absolute right-0 z-[60] mt-2 w-48 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
+                          {openDropdownId === c.id && (
+                            <div ref={dropdownRef} className="absolute right-0 z-[60] mt-2 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
                               <div className="py-1 text-left">
-                                <button onClick={() => openEdit(p)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700">
+                                <button onClick={() => openEdit(c)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                   <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
                                   Editar
                                 </button>
-                                <button onClick={() => handleToggleStatus(p)} className={`group flex w-full items-center px-4 py-2 text-sm ${p.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`}>
-                                  <svg className={`mr-3 h-5 w-5 ${p.activo ? "text-red-400 group-hover:text-red-500" : "text-green-400 group-hover:text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    {p.activo ? (
+                                <button onClick={() => {}} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                                  <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                  </svg>
+                                  Movimientos
+                                </button>
+                                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                <button onClick={() => handleToggleStatus(c)} className={`group flex w-full items-center px-4 py-2 text-sm ${c.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`}>
+                                  <svg className={`mr-3 h-5 w-5 ${c.activo ? "text-red-400 group-hover:text-red-500" : "text-green-400 group-hover:text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {c.activo ? (
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                     ) : (
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     )}
                                   </svg>
-                                  {p.activo ? "Desactivar" : "Activar"}
+                                  {c.activo ? "Desactivar" : "Activar"}
                                 </button>
                               </div>
                             </div>
@@ -394,7 +356,14 @@ export default function ProductosPage() {
               </tbody>
             </table>
           </div>
-          {paginated.length === 0 && <div className="p-12 text-center text-gray-500">No se encontraron productos</div>}
+          {paginated.length === 0 && (
+            <div className="p-12 text-center text-gray-500 bg-gray-50/50 dark:bg-gray-800/50">
+              <svg className="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              No se encontraron cajas
+            </div>
+          )}
           
           {/* Pagination */}
           {totalItems > 0 && (
@@ -409,7 +378,6 @@ export default function ProductosPage() {
                   <option value={5}>5 por página</option>
                   <option value={10}>10 por página</option>
                   <option value={20}>20 por página</option>
-                  <option value={50}>50 por página</option>
                 </select>
               </div>
 
@@ -436,22 +404,22 @@ export default function ProductosPage() {
                 </button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((pc) => pc === 1 || pc === totalPages || Math.abs(pc - currentPage) <= 1)
-                    .reduce<(number | "...")[]>((acc, pc, i, arr) => {
-                      if (i > 0 && pc - (arr[i-1] as number) > 1) acc.push("...");
-                      acc.push(pc);
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                      if (i > 0 && p - (arr[i-1] as number) > 1) acc.push("...");
+                      acc.push(p);
                       return acc;
                     }, [])
-                    .map((pc, i) => (
-                      pc === "..." ? (
+                    .map((p, i) => (
+                      p === "..." ? (
                         <span key={`dots-${i}`} className="px-2 text-gray-400">...</span>
                       ) : (
                         <button
-                          key={pc}
-                          onClick={() => setCurrentPage(pc as number)}
-                          className={`min-w-[32px] h-8 rounded-md text-sm font-medium transition-colors ${currentPage === pc ? "bg-emerald-600 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                          key={p}
+                          onClick={() => setCurrentPage(p as number)}
+                          className={`min-w-[32px] h-8 rounded-md text-sm font-medium transition-colors ${currentPage === p ? "bg-emerald-600 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
                         >
-                          {pc}
+                          {p}
                         </button>
                       )
                     ))}
@@ -485,36 +453,25 @@ export default function ProductosPage() {
       {/* Modal */}
       {(modal === "create" || modal === "edit") && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-8 dark:bg-gray-900 shadow-2xl">
-            <h2 className="text-xl font-bold mb-6 dark:text-white">{modal === "create" ? "Nuevo Producto" : "Editar Producto"}</h2>
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 dark:bg-gray-900 shadow-2xl">
+            <h2 className="text-xl font-bold mb-6 dark:text-white">{modal === "create" ? "Nueva Caja" : "Editar Caja"}</h2>
             <form onSubmit={modal === "create" ? handleCreate : handleEdit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Código</label>
-                <input required value={form.codigo} onChange={e => setForm({...form, codigo: e.target.value})} className={inputClass} placeholder="P001" />
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Descripción *</label>
+                <input required value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} className={inputClass} placeholder="Ej: Caja Central" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Descripción</label>
-                <input required value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} className={inputClass} placeholder="Nombre del producto" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Familia</label>
-                  <select required value={form.familiaId} onChange={e => setForm({...form, familiaId: Number(e.target.value)})} className={inputClass}>
-                    {familias.map(f => <option key={f.id} value={f.id}>{f.descripcion}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Unidad de Medida</label>
-                  <select required value={form.unidadMedidaId} onChange={e => setForm({...form, unidadMedidaId: Number(e.target.value)})} className={inputClass}>
-                    {unidades.map(u => <option key={u.id} value={u.id}>{u.descripcion}</option>)}
-                  </select>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Saldo Inicial *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-500">$</span>
+                  <input required type="number" step="0.01" value={form.saldo} onChange={e => setForm({...form, saldo: Number(e.target.value)})} className={`${inputClass} pl-7`} />
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="p-activo" checked={form.activo} onChange={e => setForm({...form, activo: e.target.checked})} className="h-4 w-4 rounded text-emerald-600" />
-                <label htmlFor="p-activo" className="text-sm dark:text-gray-300">Activo</label>
+                <input type="checkbox" id="c-activo" checked={form.activo} onChange={e => setForm({...form, activo: e.target.checked})} className="h-4 w-4 rounded text-emerald-600" />
+                <label htmlFor="c-activo" className="text-sm dark:text-gray-300">Activa</label>
               </div>
-              <div className="flex justify-end gap-3 pt-6">
+              <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-800">
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Cancelar</button>
                 <button type="submit" disabled={saving} className="px-6 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">
                   {saving ? "Guardando..." : "Guardar"}
