@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { getToken, getUser } from "@/lib/auth";
 import { showSuccess, showError, showConfirm } from "@/lib/alerts";
+import * as XLSX from "xlsx";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -85,18 +86,27 @@ export default function UsuariosPage() {
   const canEdit = user?.rol === 'Administrador' || user?.permissions?.find((p: any) => p.section === 'usuarios')?.access === 'FULL_ACCESS';
 
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing Esc
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (openDropdownId !== null && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setOpenDropdownId(null);
       }
     }
+
+    function handleEsc(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenDropdownId(null);
+      }
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
     };
-  }, []);
+  }, [openDropdownId]);
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -295,6 +305,28 @@ export default function UsuariosPage() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (sortedUsers.length === 0) {
+      showError("Sin datos", "No hay usuarios para exportar");
+      return;
+    }
+
+    const dataToExport = sortedUsers.map((u) => ({
+      Usuario: u.username,
+      Contacto: u.email,
+      DNI: u.dni,
+      Rol: u.rol,
+      Estado: u.activo ? "Activo" : "Inactivo",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+
+    XLSX.writeFile(workbook, "usuarios.xlsx");
+    showSuccess("Archivo exportado", "El archivo Excel ha sido generado con éxito");
+  };
+
   const inputClass =
     "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 transition-all";
 
@@ -305,19 +337,30 @@ export default function UsuariosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Gestión de Usuarios</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Administra los usuarios y sus permisos</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total de usuarios: {totalItems}</p>
         </div>
-        {canEdit && (
+        <div className="flex items-center gap-3">
           <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all hover:-translate-y-0.5"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 rounded-xl bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all hover:-translate-y-0.5"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Nuevo Usuario
+            Exportar
           </button>
-        )}
+          {canEdit && (
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all hover:-translate-y-0.5"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Usuario
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -478,7 +521,7 @@ export default function UsuariosPage() {
                   ))}
                   {canEdit && (
                     <th scope="col" className="relative px-6 py-4">
-                      <span className="sr-only">Acciones</span>
+                      <span className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Acciones</span>
                     </th>
                   )}
                 </tr>
@@ -528,7 +571,7 @@ export default function UsuariosPage() {
                     </td>
                     {canEdit && (
                       <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                        <div className="relative">
+                        <div className="relative flex justify-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); toggleDropdown(user.id); }}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

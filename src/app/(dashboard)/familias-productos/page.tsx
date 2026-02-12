@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-interface UnidadMedida {
+interface FamiliaProducto {
   id: number;
   descripcion: string;
   activo: boolean;
@@ -26,11 +26,11 @@ const emptyForm = {
   activo: true,
 };
 
-export default function UnidadesMedidaPage() {
-  const [unidades, setUnidades] = useState<UnidadMedida[]>([]);
+export default function FamiliasProductosPage() {
+  const [familias, setFamilias] = useState<FamiliaProducto[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [selected, setSelected] = useState<UnidadMedida | null>(null);
+  const [selected, setSelected] = useState<FamiliaProducto | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -59,13 +59,13 @@ export default function UnidadesMedidaPage() {
     Authorization: `Bearer ${getToken()}`,
   }), []);
 
-  const fetchUnidades = useCallback(async () => {
+  const fetchFamilias = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/unidades-medida`, { headers: headers() });
-      if (!res.ok) throw new Error("Error al cargar unidades de medida");
-      setUnidades(await res.json());
+      const res = await fetch(`${API_URL}/familias-productos`, { headers: headers() });
+      if (!res.ok) throw new Error("Error al cargar familias de productos");
+      setFamilias(await res.json());
     } catch {
-      setError("Error al cargar unidades de medida");
+      setError("Error al cargar familias de productos");
     } finally {
       setLoading(false);
     }
@@ -75,8 +75,8 @@ export default function UnidadesMedidaPage() {
 
   useEffect(() => {
     setUser(getUser());
-    fetchUnidades();
-  }, [fetchUnidades]);
+    fetchFamilias();
+  }, [fetchFamilias]);
 
   const canEdit = user?.rol === 'Administrador' || user?.permissions?.find((p: any) => p.section === 'configuraciones')?.access === 'FULL_ACCESS';
 
@@ -111,9 +111,9 @@ export default function UnidadesMedidaPage() {
     setModal("create");
   };
 
-  const openEdit = (unidad: UnidadMedida) => {
-    setSelected(unidad);
-    setForm({ descripcion: unidad.descripcion, activo: unidad.activo });
+  const openEdit = (familia: FamiliaProducto) => {
+    setSelected(familia);
+    setForm({ descripcion: familia.descripcion, activo: familia.activo });
     setError("");
     setModal("edit");
     setOpenDropdownId(null);
@@ -130,20 +130,20 @@ export default function UnidadesMedidaPage() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/unidades-medida`, {
+      const res = await fetch(`${API_URL}/familias-productos`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(form),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Error al crear unidad de medida");
+        throw new Error(data.message || "Error al crear familia de producto");
       }
-      await fetchUnidades();
+      await fetchFamilias();
       closeModal();
-      showSuccess("Unidad creada", "La unidad de medida ha sido creada correctamente");
+      showSuccess("Familia creada", "La familia de producto ha sido creada correctamente");
     } catch (err: any) {
-      showError("Error al crear unidad", err.message);
+      showError("Error al crear familia", err.message);
       setError(err.message);
     } finally {
       setSaving(false);
@@ -156,42 +156,42 @@ export default function UnidadesMedidaPage() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/unidades-medida/${selected.id}`, {
+      const res = await fetch(`${API_URL}/familias-productos/${selected.id}`, {
         method: "PATCH",
         headers: headers(),
         body: JSON.stringify(form),
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.message || "Error al editar unidad de medida");
+        throw new Error(d.message || "Error al editar familia de producto");
       }
-      await fetchUnidades();
+      await fetchFamilias();
       closeModal();
-      showSuccess("Unidad actualizada", "La unidad de medida ha sido actualizada correctamente");
+      showSuccess("Familia actualizada", "La familia de producto ha sido actualizada correctamente");
     } catch (err: any) {
-      showError("Error al editar unidad", err.message);
+      showError("Error al editar familia", err.message);
       setError(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggleStatus = async (unidad: UnidadMedida) => {
+  const handleToggleStatus = async (familia: FamiliaProducto) => {
     const confirmed = await showConfirm({
-      title: `¿${unidad.activo ? 'Desactivar' : 'Activar'} unidad?`,
-      text: `¿Estás seguro de que deseas ${unidad.activo ? 'desactivar' : 'activar'} "${unidad.descripcion}"?`,
-      confirmButtonText: unidad.activo ? "Sí, desactivar" : "Sí, activar",
-      confirmButtonColor: unidad.activo ? "#ef4444" : "#10b981",
+      title: `¿${familia.activo ? 'Desactivar' : 'Activar'} familia?`,
+      text: `¿Estás seguro de que deseas ${familia.activo ? 'desactivar' : 'activar'} "${familia.descripcion}"?`,
+      confirmButtonText: familia.activo ? "Sí, desactivar" : "Sí, activar",
+      confirmButtonColor: familia.activo ? "#ef4444" : "#10b981",
     });
 
     if (!confirmed) return;
 
     setOpenDropdownId(null);
     try {
-      const res = await fetch(`${API_URL}/unidades-medida/${unidad.id}`, {
+      const res = await fetch(`${API_URL}/familias-productos/${familia.id}`, {
         method: "PATCH",
         headers: headers(),
-        body: JSON.stringify({ activo: !unidad.activo }),
+        body: JSON.stringify({ activo: !familia.activo }),
       });
 
       if (!res.ok) {
@@ -199,17 +199,17 @@ export default function UnidadesMedidaPage() {
         throw new Error(d.message || "Error al cambiar estado");
       }
 
-      await fetchUnidades();
-      showSuccess("Estado actualizado", `La unidad ahora está ${!unidad.activo ? 'activa' : 'inactiva'}`);
+      await fetchFamilias();
+      showSuccess("Estado actualizado", `La familia ahora está ${!familia.activo ? 'activa' : 'inactiva'}`);
     } catch (err: any) {
       showError("Error", err.message);
     }
   };
 
-  const filteredUnidades = unidades.filter((unidad) => {
-    const matchesSearch = unidad.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredFamilias = familias.filter((familia) => {
+    const matchesSearch = familia.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "Todos" ||
-      (statusFilter === "Activo" ? unidad.activo : !unidad.activo);
+      (statusFilter === "Activo" ? familia.activo : !familia.activo);
 
     return matchesSearch && matchesStatus;
   });
@@ -223,7 +223,7 @@ export default function UnidadesMedidaPage() {
     }
   };
 
-  const sortedUnidades = [...filteredUnidades].sort((a, b) => {
+  const sortedFamilias = [...filteredFamilias].sort((a, b) => {
     let cmp = 0;
     if (sortKey === "activo") {
       cmp = Number(a.activo) - Number(b.activo);
@@ -236,11 +236,11 @@ export default function UnidadesMedidaPage() {
   });
 
   // Pagination calculations
-  const totalItems = sortedUnidades.length;
+  const totalItems = sortedFamilias.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * pageSize;
-  const paginatedUnidades = sortedUnidades.slice(startIndex, startIndex + pageSize);
+  const paginatedFamilias = sortedFamilias.slice(startIndex, startIndex + pageSize);
 
   // Reset page when filters/search change
   useEffect(() => {
@@ -266,12 +266,12 @@ export default function UnidadesMedidaPage() {
   };
 
   const handleExportExcel = () => {
-    if (sortedUnidades.length === 0) {
-      showError("Sin datos", "No hay unidades de medida para exportar");
+    if (sortedFamilias.length === 0) {
+      showError("Sin datos", "No hay familias de productos para exportar");
       return;
     }
 
-    const dataToExport = sortedUnidades.map((u) => ({
+    const dataToExport = sortedFamilias.map((u) => ({
       ID: u.id,
       Descripción: u.descripcion,
       Estado: u.activo ? "Activo" : "Inactivo",
@@ -280,9 +280,9 @@ export default function UnidadesMedidaPage() {
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Unidades de Medida");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Familias de Productos");
 
-    XLSX.writeFile(workbook, "unidades_de_medida.xlsx");
+    XLSX.writeFile(workbook, "familias_de_productos.xlsx");
     showSuccess("Archivo exportado", "El archivo Excel ha sido generado con éxito");
   };
 
@@ -295,8 +295,8 @@ export default function UnidadesMedidaPage() {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Unidades de medida</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total unidades de medidas: {totalItems}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Familias de productos</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gestiona las familias de productos del sistema</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -316,7 +316,7 @@ export default function UnidadesMedidaPage() {
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Nueva Unidad
+              Nueva Familia
             </button>
           )}
         </div>
@@ -361,24 +361,24 @@ export default function UnidadesMedidaPage() {
 
           {/* Mobile Cards */}
           <div className="block md:hidden divide-y divide-gray-200 dark:divide-gray-800">
-            {paginatedUnidades.map((unidad) => (
-              <div key={unidad.id} className="p-4">
+            {paginatedFamilias.map((familia) => (
+              <div key={familia.id} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className={`text-sm font-medium ${unidad.activo ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 line-through'}`}>
-                      {unidad.descripcion}
+                    <div className={`text-sm font-medium ${familia.activo ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 line-through'}`}>
+                      {familia.descripcion}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Creado: {formatDate(unidad.createdAt)}
+                      Creado: {formatDate(familia.createdAt)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Actualizado: {formatDate(unidad.updatedAt)}
+                      Actualizado: {formatDate(familia.updatedAt)}
                     </div>
                   </div>
                   <div className="relative">
                     {canEdit && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); toggleDropdown(unidad.id); }}
+                        onClick={(e) => { e.stopPropagation(); toggleDropdown(familia.id); }}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       >
                         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -386,19 +386,19 @@ export default function UnidadesMedidaPage() {
                         </svg>
                       </button>
                     )}
-                    {openDropdownId === unidad.id && canEdit && (
+                    {openDropdownId === familia.id && canEdit && (
                       <div ref={mobileDropdownRef} className="absolute right-0 z-50 mt-1 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
                         <div className="py-1">
-                          <button onClick={() => openEdit(unidad)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                          <button onClick={() => openEdit(familia)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                             <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                             Editar
                           </button>
                           <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                          <button className={`group flex w-full items-center px-4 py-2 text-sm ${unidad.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`} onClick={() => handleToggleStatus(unidad)}>
-                            <svg className={`mr-3 h-5 w-5 ${unidad.activo ? "text-red-400" : "text-green-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              {unidad.activo ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                          <button className={`group flex w-full items-center px-4 py-2 text-sm ${familia.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`} onClick={() => handleToggleStatus(familia)}>
+                            <svg className={`mr-3 h-5 w-5 ${familia.activo ? "text-red-400" : "text-green-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              {familia.activo ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
                             </svg>
-                            {unidad.activo ? "Desactivar" : "Activar"}
+                            {familia.activo ? "Desactivar" : "Activar"}
                           </button>
                         </div>
                       </div>
@@ -406,10 +406,10 @@ export default function UnidadesMedidaPage() {
                   </div>
                 </div>
                 <div className="mt-2">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${unidad.activo
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${familia.activo
                     ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-400/30"
                     : "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-400/30"
-                    }`}>{unidad.activo ? "Activo" : "Inactivo"}</span>
+                    }`}>{familia.activo ? "Activo" : "Inactivo"}</span>
                 </div>
               </div>
             ))}
@@ -452,22 +452,22 @@ export default function UnidadesMedidaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                {paginatedUnidades.map((unidad) => (
-                  <tr key={unidad.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                {paginatedFamilias.map((familia) => (
+                  <tr key={familia.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="whitespace-nowrap px-6 py-4">
-                      <div className={`text-sm font-medium ${unidad.activo ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 line-through'}`}>
-                        {unidad.descripcion}
+                      <div className={`text-sm font-medium ${familia.activo ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 line-through'}`}>
+                        {familia.descripcion}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {formatDate(unidad.createdAt)}
+                      {formatDate(familia.createdAt)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${unidad.activo
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${familia.activo
                         ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-400/30"
                         : "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-400/30"
                         }`}>
-                        {unidad.activo ? "Activo" : "Inactivo"}
+                        {familia.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
 
@@ -475,7 +475,7 @@ export default function UnidadesMedidaPage() {
                       <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                         <div className="relative flex justify-center">
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleDropdown(unidad.id); }}
+                            onClick={(e) => { e.stopPropagation(); toggleDropdown(familia.id); }}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                           >
                             <span className="sr-only">Open menu</span>
@@ -483,19 +483,19 @@ export default function UnidadesMedidaPage() {
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                             </svg>
                           </button>
-                          {openDropdownId === unidad.id && (
+                          {openDropdownId === familia.id && (
                             <div ref={dropdownRef} className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
                               <div className="py-1">
-                                <button onClick={() => openEdit(unidad)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                                <button onClick={() => openEdit(familia)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                   <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                   Editar
                                 </button>
                                 <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                                <button className={`group flex w-full items-center px-4 py-2 text-sm ${unidad.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`} onClick={() => handleToggleStatus(unidad)}>
-                                  <svg className={`mr-3 h-5 w-5 ${unidad.activo ? "text-red-400 group-hover:text-red-500" : "text-green-400 group-hover:text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    {unidad.activo ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                                <button className={`group flex w-full items-center px-4 py-2 text-sm ${familia.activo ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"}`} onClick={() => handleToggleStatus(familia)}>
+                                  <svg className={`mr-3 h-5 w-5 ${familia.activo ? "text-red-400 group-hover:text-red-500" : "text-green-400 group-hover:text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {familia.activo ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
                                   </svg>
-                                  {unidad.activo ? "Desactivar" : "Activar"}
+                                  {familia.activo ? "Desactivar" : "Activar"}
                                 </button>
                               </div>
                             </div>
@@ -510,14 +510,14 @@ export default function UnidadesMedidaPage() {
           </div>
 
           {/* Empty state */}
-          {paginatedUnidades.length === 0 && (
+          {paginatedFamilias.length === 0 && (
             <div className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/50">
               <div className="flex flex-col items-center justify-center">
                 <svg className="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                <p className="font-medium text-gray-600 dark:text-gray-300">No se encontraron unidades de medida</p>
-                <p className="text-gray-400">Intenta con otros filtros o crea una nueva unidad.</p>
+                <p className="font-medium text-gray-600 dark:text-gray-300">No se encontraron familias de productos</p>
+                <p className="text-gray-400">Intenta con otros filtros o crea una nueva familia.</p>
               </div>
             </div>
           )}
@@ -617,7 +617,7 @@ export default function UnidadesMedidaPage() {
           <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {modal === "create" ? "Nueva Unidad de Medida" : "Editar Unidad de Medida"}
+                {modal === "create" ? "Nueva Familia de Producto" : "Editar Familia de Producto"}
               </h2>
               <button
                 onClick={closeModal}
@@ -641,7 +641,7 @@ export default function UnidadesMedidaPage() {
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">Descripción</label>
                 <input
                   required
-                  placeholder="Ej: Kilogramos, Litros, Unidades..."
+                  placeholder="Ej: Lácteos, Bebidas, Limpieza..."
                   value={form.descripcion}
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                   className={inputClass}
