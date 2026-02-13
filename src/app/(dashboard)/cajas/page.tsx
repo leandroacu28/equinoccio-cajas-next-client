@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { getToken, getUser } from "@/lib/auth";
 import { showSuccess, showError, showConfirm } from "@/lib/alerts";
 import * as XLSX from "xlsx";
@@ -13,6 +14,16 @@ interface Caja {
   saldo: number;
   activo: boolean;
   createdAt: string;
+  creatorUser: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  assignedUser?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  } | null;
 }
 
 const emptyForm = {
@@ -22,11 +33,16 @@ const emptyForm = {
 };
 
 export default function CajasPage() {
+  const router = useRouter();
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [selected, setSelected] = useState<Caja | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<{
+    descripcion: string;
+    saldo: number | string;
+    activo: boolean;
+  }>(emptyForm);
   const [saving, setSaving] = useState(false);
 
   // Filters
@@ -64,12 +80,29 @@ export default function CajasPage() {
     }
   }, [headers]);
 
+
+
   const [user, setUser] = useState<any>(null);
+
+  const [users, setUsers] = useState<any[]>([]);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/users`, { headers: headers() });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, [headers]);
 
   useEffect(() => {
     setUser(getUser());
     fetchData();
-  }, [fetchData]);
+    fetchUsers();
+  }, [fetchData, fetchUsers]);
 
   const canEdit = user?.rol === 'Administrador' || user?.permissions?.find((p: any) => p.section === 'cajas')?.access === 'FULL_ACCESS';
 
@@ -120,7 +153,7 @@ export default function CajasPage() {
       const res = await fetch(`${API_URL}/cajas`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, saldo: Number(form.saldo) }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -144,7 +177,7 @@ export default function CajasPage() {
       const res = await fetch(`${API_URL}/cajas/${selected.id}`, {
         method: "PATCH",
         headers: headers(),
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, saldo: Number(form.saldo) }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -295,8 +328,10 @@ export default function CajasPage() {
                 {paginated.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{c.descripcion}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 dark:text-emerald-400 font-bold">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {c.assignedUser ? `${c.assignedUser.nombre} ${c.assignedUser.apellido}` : "-"}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${Number(c.saldo) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       ${Number(c.saldo).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(c.createdAt).toLocaleDateString()}</td>
@@ -328,7 +363,7 @@ export default function CajasPage() {
                                   </svg>
                                   Editar
                                 </button>
-                                <button onClick={() => {}} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                                <button onClick={() => router.push(`/cajas/${c.id}/movimientos`)} className="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700">
                                   <svg className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                                   </svg>
@@ -453,28 +488,90 @@ export default function CajasPage() {
       {/* Modal */}
       {(modal === "create" || modal === "edit") && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-8 dark:bg-gray-900 shadow-2xl">
-            <h2 className="text-xl font-bold mb-6 dark:text-white">{modal === "create" ? "Nueva Caja" : "Editar Caja"}</h2>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 md:p-8 dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {modal === "create" ? "Nueva Caja" : "Editar Caja"}
+              </h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
             <form onSubmit={modal === "create" ? handleCreate : handleEdit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Descripción *</label>
-                <input required value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} className={inputClass} placeholder="Ej: Caja Central" />
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Descripción <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.descripcion}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                  className={inputClass}
+                  placeholder="Ej: Caja Principal"
+                />
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Saldo Inicial *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Saldo Inicial <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-gray-500">$</span>
-                  <input required type="number" step="0.01" value={form.saldo} onChange={e => setForm({...form, saldo: Number(e.target.value)})} className={`${inputClass} pl-7`} />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={form.saldo}
+                    onChange={(e) => setForm({ ...form, saldo: e.target.value })}
+                    className={`${inputClass} pl-7`}
+                    placeholder="0.00"
+                  />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="c-activo" checked={form.activo} onChange={e => setForm({...form, activo: e.target.checked})} className="h-4 w-4 rounded text-emerald-600" />
-                <label htmlFor="c-activo" className="text-sm dark:text-gray-300">Activa</label>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="activo"
+                  checked={form.activo}
+                  onChange={(e) => setForm({ ...form, activo: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-800"
+                />
+                <label htmlFor="activo" className="text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
+                  Caja Activa
+                </label>
               </div>
-              <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-800">
-                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Cancelar</button>
-                <button type="submit" disabled={saving} className="px-6 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">
-                  {saving ? "Guardando..." : "Guardar"}
+
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 dark:border-gray-800 mt-6">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  {saving ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Guardando...
+                    </span>
+                  ) : (
+                    "Guardar"
+                  )}
                 </button>
               </div>
             </form>

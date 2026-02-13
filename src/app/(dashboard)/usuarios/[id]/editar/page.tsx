@@ -73,8 +73,8 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
       });
 
       // Si el usuario tiene cajas asociadas, mostramos la primera como "asignada"
-      if (data.cajas && data.cajas.length > 0) {
-        setSelectedCaja(data.cajas[0]);
+      if (data.assignedCajas && data.assignedCajas.length > 0) {
+        setSelectedCaja(data.assignedCajas[0]);
       }
     } catch (err: any) {
       console.error("Error fetching user:", err);
@@ -111,7 +111,7 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({ ...form, cajaId: selectedCaja?.id }),
+        body: JSON.stringify({ ...form, cajaId: selectedCaja ? selectedCaja.id : null }),
       });
 
       if (!res.ok) {
