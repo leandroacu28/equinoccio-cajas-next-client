@@ -19,6 +19,12 @@ interface Caja {
     apellido: string;
     rol: string;
   };
+  assignedUser?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    rol: string;
+  };
 }
 
 export default function EditarUsuarioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +34,7 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
   const [saving, setSaving] = useState(false);
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [showCajasModal, setShowCajasModal] = useState(false);
+  const [searchCaja, setSearchCaja] = useState("");
   const [selectedCaja, setSelectedCaja] = useState<Caja | null>(null);
 
   const [form, setForm] = useState({
@@ -328,23 +335,38 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+              <input
+                type="text"
+                placeholder="Buscar caja..."
+                value={searchCaja}
+                onChange={(e) => setSearchCaja(e.target.value)}
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                autoFocus
+              />
+            </div>
             <div className="p-6 max-h-[400px] overflow-y-auto space-y-2 text-left">
-              {cajas.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 italic">No hay cajas disponibles</div>
+              {cajas.filter(c => c.descripcion.toLowerCase().includes(searchCaja.toLowerCase())).length === 0 ? (
+                <div className="p-8 text-center text-gray-500 italic">No se encontraron cajas</div>
               ) : (
-                cajas.map(c => {
-                  const isAssignedToOther = c.creatorUser && c.creatorUser.rol === "Empleado" && c.creatorUser.id !== Number(id);
+                cajas.filter(c => c.descripcion.toLowerCase().includes(searchCaja.toLowerCase())).map(c => {
+                  // Check if assigned to another user (not the one being edited)
+                  // Note: The logic previously checked creatorUser. correctly it should trigger on assignedUser.
+                  // If assignedUser exists and ID is different from current user ID we are editing.
+                  const isAssignedToOther = c.assignedUser && c.assignedUser.id !== Number(id);
+                  
                   return (
                     <button 
                       key={c.id}
-                      disabled={isAssignedToOther}
+                      disabled={isAssignedToOther || false}
                       onClick={() => { 
                         if (isAssignedToOther) {
-                          showError("Caja ocupada", `Esta caja ya está asignada al usuario ${c.creatorUser?.nombre} ${c.creatorUser?.apellido}`);
+                          showError("Caja ocupada", `Esta caja ya está asignada al usuario ${c.assignedUser?.nombre} ${c.assignedUser?.apellido}`);
                           return;
                         }
                         setSelectedCaja(c); 
                         setShowCajasModal(false); 
+                        setSearchCaja(""); // Clear search on select
                       }}
                       className={`w-full text-left p-4 rounded-xl border transition-all group relative ${
                         isAssignedToOther 
@@ -361,12 +383,12 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
                         </div>
                         {isAssignedToOther && (
                           <div className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-md border border-amber-100">
-                             Asignada a: {c.creatorUser?.nombre} {c.creatorUser?.apellido}
+                             Asignada a: {c.assignedUser?.nombre} {c.assignedUser?.apellido}
                           </div>
                         )}
-                        {c.creatorUser?.id === Number(id) && (
+                        {c.assignedUser?.id === Number(id) && (
                           <div className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-md border border-emerald-100">
-                             Tu caja actual
+                             Usuario actual
                           </div>
                         )}
                       </div>
@@ -374,14 +396,6 @@ export default function EditarUsuarioPage({ params }: { params: Promise<{ id: st
                   );
                 })
               )}
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
-               <button 
-                 onClick={() => setShowCajasModal(false)}
-                 className="w-full py-2.5 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
-               >
-                 Regresar
-               </button>
             </div>
           </div>
         </div>
