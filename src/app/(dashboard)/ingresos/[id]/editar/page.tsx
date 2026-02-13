@@ -36,6 +36,11 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
     activo: true,
   });
 
+  const [metaData, setMetaData] = useState({
+    createdAt: "",
+    creatorName: "",
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -60,6 +65,10 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
             monto: data.monto.toString(),
             observaciones: data.observaciones || "",
             activo: data.activo,
+          });
+          setMetaData({
+            createdAt: new Date(data.createdAt).toLocaleString("es-AR"),
+            creatorName: `${data.creatorUser.nombre} ${data.creatorUser.apellido}`,
           });
         } else {
           showError("Error", "No se pudo cargar el ingreso");
@@ -139,6 +148,24 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Meta Data (Read Only) */}
+          <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+            <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+              Fecha de Alta
+            </label>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {metaData.createdAt}
+            </p>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+            <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+              Usuario Creador
+            </label>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {metaData.creatorName}
+            </p>
+          </div>
+
           <div className="md:col-span-1">
             <label className={labelClass}>Fecha de Ingreso <span className="text-red-500">*</span></label>
             <input 
