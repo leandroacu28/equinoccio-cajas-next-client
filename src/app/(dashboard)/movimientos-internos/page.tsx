@@ -172,7 +172,7 @@ export default function MovimientosInternosPage() {
   const exportToExcel = () => {
     const dataToExport = movimientos.map((m) => ({
       ID: m.id,
-      Fecha: new Date(m.fecha).toLocaleDateString("es-AR"),
+      Fecha: new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" }),
       "Caja Origen": m.cajaOrigen.descripcion,
       "Caja Destino": m.cajaDestino.descripcion,
       Monto: Number(m.monto),
@@ -346,7 +346,7 @@ export default function MovimientosInternosPage() {
                 </div>
 
                 <div className="pt-2 border-t border-gray-50 dark:border-gray-800/50 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-tighter">
-                  <span>{new Date(m.fecha).toLocaleDateString("es-AR")}</span>
+                  <span>{new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" })}</span>
                   <span className="truncate max-w-[150px] italic">{m.observaciones || "Sin observaciones"}</span>
                 </div>
               </div>
@@ -385,7 +385,7 @@ export default function MovimientosInternosPage() {
                   <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
                     <td className="px-6 py-4 text-sm font-bold text-blue-600 dark:text-blue-400">#{m.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(m.fecha).toLocaleDateString("es-AR")}
+                      {new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" })}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-200">
                       {m.cajaOrigen.descripcion}

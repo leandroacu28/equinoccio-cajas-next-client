@@ -184,10 +184,31 @@ export default function IngresosPage() {
     }
   };
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'id', direction: 'desc' });
+
+  const sortedIngresos = [...ingresos].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    
+    // Handle nested properties or specific types if needed
+    let aValue: any = a[key as keyof Ingreso];
+    let bValue: any = b[key as keyof Ingreso];
+    
+    if (key === 'fecha') {
+        aValue = new Date(a.fecha).getTime();
+        bValue = new Date(b.fecha).getTime();
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const exportToExcel = () => {
-    const dataToExport = ingresos.map((i) => ({
+    const dataToExport = sortedIngresos.map((i) => ({
       ID: i.id,
-      Fecha: new Date(i.fecha).toLocaleDateString("es-AR"),
+      Fecha: new Date(i.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" }),
       "Tipo de Ingreso": i.tipoIngreso.descripcion,
       Caja: i.caja.descripcion,
       Monto: Number(i.monto),
@@ -301,10 +322,10 @@ export default function IngresosPage() {
                 <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-3/4"></div>
               </div>
             ))
-          ) : ingresos.length === 0 ? (
+          ) : sortedIngresos.length === 0 ? (
             <div className="p-8 text-center text-gray-500 italic text-sm">No se encontraron ingresos</div>
           ) : (
-            ingresos.map((i) => (
+            sortedIngresos.map((i) => (
               <div key={i.id} className="p-4 space-y-3 relative group">
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col gap-1">
@@ -366,7 +387,7 @@ export default function IngresosPage() {
                 </div>
 
                 <div className="pt-2 border-t border-gray-50 dark:border-gray-800/50 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-tighter">
-                  <span>{new Date(i.fecha).toLocaleDateString("es-AR")}</span>
+                  <span>{new Date(i.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" })}</span>
                   <span className="truncate max-w-[150px] italic">{i.observaciones || "Sin observaciones"}</span>
                 </div>
               </div>
@@ -379,7 +400,20 @@ export default function IngresosPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nº Ingreso</th>
+                <th 
+                  className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  onClick={() => {
+                    const direction = sortConfig?.key === 'id' && sortConfig.direction === 'desc' ? 'asc' : 'desc';
+                    setSortConfig({ key: 'id', direction });
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    Nº Ingreso
+                    {sortConfig?.key === 'id' && (
+                      <span className="text-emerald-500">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo de Ingreso</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Observaciones</th>
@@ -396,16 +430,16 @@ export default function IngresosPage() {
                     <td colSpan={8} className="px-6 py-4"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-full"></div></td>
                   </tr>
                 ))
-              ) : ingresos.length === 0 ? (
+              ) : sortedIngresos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-500 italic">No se encontraron ingresos</td>
                 </tr>
               ) : (
-                ingresos.map((i) => (
+                sortedIngresos.map((i) => (
                   <tr key={i.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
                     <td className="px-6 py-4 text-sm font-bold text-emerald-600 dark:text-emerald-400">#{i.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(i.fecha).toLocaleDateString("es-AR")}
+                      {new Date(i.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" })}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">

@@ -91,6 +91,7 @@ export default function EditarGastoPage() {
         },
         body: JSON.stringify({
           ...formData,
+          fecha: `${formData.fecha}T12:00:00Z`,
           monto: parseFloat(formData.monto),
           cajaId: parseInt(formData.cajaId),
           tipoGastoId: parseInt(formData.tipoGastoId),
@@ -188,13 +189,13 @@ export default function EditarGastoPage() {
             {/* Caja */}
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Caja
+                Caja <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <select
-                required
+                disabled
                 value={formData.cajaId}
                 onChange={(e) => setFormData({ ...formData, cajaId: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-rose-500 transition-all cursor-pointer"
+                className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-rose-500 transition-all cursor-not-allowed opacity-60"
               >
                 {cajas.map((c) => (
                   <option key={c.id} value={c.id}>{c.descripcion}</option>
@@ -222,17 +223,17 @@ export default function EditarGastoPage() {
             {/* Monto */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Monto
+                Monto <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                 <input
+                  disabled
                   type="number"
                   step="0.01"
-                  required
                   value={formData.monto}
                   onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 pl-8 pr-4 text-sm focus:ring-2 focus:ring-rose-500 transition-all"
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 pl-8 pr-4 text-sm focus:ring-2 focus:ring-rose-500 transition-all cursor-not-allowed opacity-60"
                 />
               </div>
             </div>

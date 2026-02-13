@@ -14,7 +14,7 @@ export default function NuevoMovimientoPage() {
   const [cajas, setCajas] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     monto: "",
     observaciones: "",
     cajaOrigenId: "",
@@ -60,6 +60,7 @@ export default function NuevoMovimientoPage() {
         },
         body: JSON.stringify({
           ...formData,
+          fecha: new Date(formData.fecha).toISOString(),
           monto: parseFloat(formData.monto),
           cajaOrigenId: parseInt(formData.cajaOrigenId),
           cajaDestinoId: parseInt(formData.cajaDestinoId),
@@ -104,7 +105,7 @@ export default function NuevoMovimientoPage() {
                 Fecha del Movimiento <span className="text-blue-500">*</span>
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 required
                 value={formData.fecha}
                 onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}

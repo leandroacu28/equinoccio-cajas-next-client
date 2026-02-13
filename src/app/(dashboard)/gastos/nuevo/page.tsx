@@ -57,6 +57,7 @@ export default function NuevoGastoPage() {
         },
         body: JSON.stringify({
           ...formData,
+          fecha: `${formData.fecha}T12:00:00Z`,
           monto: parseFloat(formData.monto),
           cajaId: parseInt(formData.cajaId),
           tipoGastoId: parseInt(formData.tipoGastoId),

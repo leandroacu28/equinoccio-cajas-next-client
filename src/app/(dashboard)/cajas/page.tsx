@@ -508,6 +508,7 @@ export default function CajasPage() {
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={form.descripcion}
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                   className={inputClass}

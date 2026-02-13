@@ -12,6 +12,7 @@ interface Caja {
   id: number;
   descripcion: string;
   saldo: number;
+  activo?: boolean;
 }
 
 interface TipoIngreso {
@@ -66,6 +67,7 @@ export default function NuevoIngresoPage() {
         },
         body: JSON.stringify({
           ...form,
+          fecha: `${form.fecha}T12:00:00Z`,
           cajaId: parseInt(form.cajaId),
           tipoIngresoId: parseInt(form.tipoIngresoId),
           monto: parseFloat(form.monto),

@@ -41,6 +41,28 @@ export default function MovimientosCajaPage() {
   const [dateTo, setDateTo] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ 
+    key: 'fecha', 
+    direction: 'desc' 
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const sortedMovements = [...movements].sort((a, b) => {
+    if (sortConfig.key === 'fecha') {
+      const dateA = new Date(a.fecha).getTime();
+      const dateB = new Date(b.fecha).getTime();
+      return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    return 0;
+  });
+
   const headers = useCallback(() => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${getToken()}`,
@@ -85,12 +107,10 @@ export default function MovimientosCajaPage() {
 
   const handleExportExcel = () => {
     if (!caja) return;
-    const data = movements.map(m => ({
-      Fecha: new Date(m.fecha).toLocaleDateString(),
-      "Nro Movimiento": m.id,
+    const data = sortedMovements.map(m => ({
+      Fecha: new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" }),
       Tipo: m.tipo,
       Detalle: m.detalle,
-      Observaciones: m.observaciones || "",
       Debe: m.debe,
       Haber: m.haber,
       Saldo: m.saldo
@@ -201,29 +221,36 @@ export default function MovimientosCajaPage() {
               <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                   {[
-                    { label: "Fecha", align: "left" },
-                    { label: "N° Mov", align: "left" },
-                    { label: "Tipo", align: "left" },
-                    { label: "Observaciones", align: "left" },
-                    { label: "Debe", align: "right" },
-                    { label: "Haber", align: "right" },
-                    { label: "Saldo", align: "right" },
-                  ].map((col) => (
-                    <th key={col.label} className={`px-6 py-4 text-${col.align} text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none`}>
-                      {col.label}
+                    { key: "fecha", label: "Fecha", align: "left" },
+                    { key: "", label: "Tipo", align: "left" },
+                    { key: "", label: "Debe", align: "right" },
+                    { key: "", label: "Haber", align: "right" },
+                    { key: "", label: "Saldo", align: "right" },
+                  ].map((col, idx) => (
+                    <th 
+                      key={idx} 
+                      onClick={() => col.key && handleSort(col.key)}
+                      className={`px-6 py-4 text-${col.align} text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none ${col.key ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" : ""}`}
+                    >
+                      <div className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : ''}`}>
+                        {col.label}
+                        {sortConfig.key === col.key && (
+                          <span className="text-emerald-500 font-bold ml-1">
+                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
+                      </div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                {movements.length > 0 ? (
-                  movements.map((m, idx) => (
+                {sortedMovements.length > 0 ? (
+                  sortedMovements.map((m, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div className="font-medium">{new Date(m.fecha).toLocaleDateString()}</div>
-                        <div className="text-xs text-gray-500">{new Date(m.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="font-medium">{new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" })}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">#{m.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
                           m.tipo === 'Ingreso' 
@@ -236,7 +263,6 @@ export default function MovimientosCajaPage() {
                         </span>
                         <div className="text-xs text-gray-500 mt-1 font-medium">{m.detalle}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title={m.observaciones || ""}>{m.observaciones || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-emerald-600 dark:text-emerald-400">
                         {m.debe > 0 ? `$${m.debe.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '-'}
                       </td>
@@ -250,7 +276,7 @@ export default function MovimientosCajaPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/50">
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/50">
                       <div className="flex flex-col items-center justify-center">
                         <svg className="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />

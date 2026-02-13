@@ -132,6 +132,7 @@ export default function NuevoUsuarioPage() {
                 <label className={labelClass}>Nombre de usuario</label>
                 <input 
                   required 
+                  autoFocus
                   value={form.username} 
                   onChange={e => setForm({...form, username: e.target.value})} 
                   className={inputClass} 

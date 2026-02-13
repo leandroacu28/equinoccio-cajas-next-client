@@ -641,6 +641,7 @@ export default function FamiliasProductosPage() {
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">Descripción</label>
                 <input
                   required
+                  autoFocus
                   placeholder="Ej: Lácteos, Bebidas, Limpieza..."
                   value={form.descripcion}
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}

@@ -12,6 +12,7 @@ interface Caja {
   id: number;
   descripcion: string;
   saldo: number;
+  activo?: boolean;
 }
 
 interface TipoIngreso {
@@ -96,6 +97,7 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
         },
         body: JSON.stringify({
           ...form,
+          fecha: `${form.fecha}T12:00:00Z`,
           cajaId: parseInt(form.cajaId),
           tipoIngresoId: parseInt(form.tipoIngresoId),
           monto: parseFloat(form.monto),
@@ -178,29 +180,29 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="md:col-span-1">
-            <label className={labelClass}>Monto <span className="text-red-500">*</span></label>
+            <label className={labelClass}>Monto <span className="text-xs font-normal text-gray-500">(No editable)</span></label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
               <input 
-                required 
+                disabled
                 type="number"
                 step="0.01"
                 min="0"
                 value={form.monto} 
                 onChange={e => setForm({...form, monto: e.target.value})} 
-                className={`${inputClass} pl-8`}
+                className={`${inputClass} pl-8 opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50`}
                 placeholder="0.00"
               />
             </div>
           </div>
 
           <div className="md:col-span-1 text-left">
-            <label className={labelClass}>Caja <span className="text-red-500">*</span></label>
+            <label className={labelClass}>Caja <span className="text-xs font-normal text-gray-500">(No editable)</span></label>
             <select 
-              required 
+              disabled
               value={form.cajaId} 
               onChange={e => setForm({...form, cajaId: e.target.value})} 
-              className={inputClass}
+              className={`${inputClass} opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50`}
             >
               <option value="">Seleccione una caja...</option>
               {cajas.filter(c => (c as any).activo !== false || c.id.toString() === form.cajaId).map(c => (

@@ -48,7 +48,7 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
       setCajas(cajasData);
 
       setFormData({
-        fecha: new Date(movimientoData.fecha).toISOString().split("T")[0],
+        fecha: new Date(new Date(movimientoData.fecha).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
         monto: movimientoData.monto.toString(),
         observaciones: movimientoData.observaciones || "",
         cajaOrigenId: movimientoData.cajaOrigenId.toString(),
@@ -90,6 +90,7 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
         },
         body: JSON.stringify({
           ...formData,
+          fecha: new Date(formData.fecha).toISOString(),
           monto: parseFloat(formData.monto),
           cajaOrigenId: parseInt(formData.cajaOrigenId),
           cajaDestinoId: parseInt(formData.cajaDestinoId),
@@ -161,7 +162,7 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
                 Fecha del Movimiento
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 required
                 value={formData.fecha}
                 onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
