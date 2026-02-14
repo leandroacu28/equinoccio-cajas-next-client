@@ -70,7 +70,10 @@ export default function MovimientosCajaPage() {
 
   const fetchCaja = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/cajas/${params.id}`, { headers: headers() });
+      const res = await fetch(`${API_URL}/cajas/${params.id}`, { 
+        headers: headers(),
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error("Error al cargar datos de la caja");
       const data = await res.json();
       setCaja(data);
@@ -87,7 +90,10 @@ export default function MovimientosCajaPage() {
       if (dateTo) queryParams.append("to", dateTo);
       if (searchTerm) queryParams.append("search", searchTerm);
 
-      const res = await fetch(`${API_URL}/cajas/${params.id}/movimientos?${queryParams.toString()}`, { headers: headers() });
+      const res = await fetch(`${API_URL}/cajas/${params.id}/movimientos?${queryParams.toString()}`, { 
+        headers: headers(),
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error("Error al cargar movimientos");
       const data = await res.json();
       setMovements(data);

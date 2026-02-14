@@ -164,13 +164,12 @@ export default function IngresosPage() {
 
     if (confirmed) {
       try {
-        const res = await fetch(`${API_URL}/ingresos/${id}`, {
+        const res = await fetch(`${API_URL}/ingresos/${id}/activar`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,
           },
-          body: JSON.stringify({ activo: true }),
         });
         if (res.ok) {
           showSuccess("Éxito", "Ingreso dado de alta nuevamente");
