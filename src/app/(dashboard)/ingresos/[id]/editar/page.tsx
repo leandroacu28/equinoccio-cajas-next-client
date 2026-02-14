@@ -35,6 +35,7 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
     monto: "",
     observaciones: "",
     activo: true,
+    fullFecha: "",
   });
 
   const [metaData, setMetaData] = useState({
@@ -61,6 +62,7 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
           const data = await ingresoRes.json();
           setForm({
             fecha: new Date(data.fecha).toISOString().split("T")[0],
+            fullFecha: data.fecha,
             cajaId: data.cajaId.toString(),
             tipoIngresoId: data.tipoIngresoId.toString(),
             monto: data.monto.toString(),
@@ -97,7 +99,16 @@ export default function EditarIngresoPage({ params }: { params: Promise<{ id: st
         },
         body: JSON.stringify({
           ...form,
-          fecha: `${form.fecha}T12:00:00Z`,
+          fecha: (() => {
+            const datePart = new Date(form.fullFecha).toISOString().split("T")[0];
+            if (form.fecha === datePart) {
+              return form.fullFecha;
+            } else {
+              const now = new Date();
+              const timeString = now.toTimeString().split(' ')[0];
+              return new Date(`${form.fecha}T${timeString}`).toISOString();
+            }
+          })(),
           cajaId: parseInt(form.cajaId),
           tipoIngresoId: parseInt(form.tipoIngresoId),
           monto: parseFloat(form.monto),

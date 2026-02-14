@@ -57,7 +57,11 @@ export default function NuevoGastoPage() {
         },
         body: JSON.stringify({
           ...formData,
-          fecha: `${formData.fecha}T12:00:00Z`,
+          fecha: (() => {
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0];
+            return new Date(`${formData.fecha}T${timeString}`).toISOString();
+          })(),
           monto: parseFloat(formData.monto),
           cajaId: parseInt(formData.cajaId),
           tipoGastoId: parseInt(formData.tipoGastoId),

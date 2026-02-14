@@ -26,6 +26,7 @@ export default function EditarGastoPage() {
     cajaId: "",
     tipoGastoId: "",
     activo: true,
+    fullFecha: "",
   });
 
   const [metaData, setMetaData] = useState({
@@ -55,6 +56,7 @@ export default function EditarGastoPage() {
 
       setFormData({
         fecha: new Date(gastoData.fecha).toISOString().split("T")[0],
+        fullFecha: gastoData.fecha,
         factura: gastoData.factura as "SinFactura" | "ConFactura",
         monto: gastoData.monto.toString(),
         observaciones: gastoData.observaciones || "",
@@ -91,7 +93,16 @@ export default function EditarGastoPage() {
         },
         body: JSON.stringify({
           ...formData,
-          fecha: `${formData.fecha}T12:00:00Z`,
+          fecha: (() => {
+            const datePart = new Date(formData.fullFecha).toISOString().split("T")[0];
+            if (formData.fecha === datePart) {
+              return formData.fullFecha;
+            } else {
+              const now = new Date();
+              const timeString = now.toTimeString().split(' ')[0];
+              return new Date(`${formData.fecha}T${timeString}`).toISOString();
+            }
+          })(),
           monto: parseFloat(formData.monto),
           cajaId: parseInt(formData.cajaId),
           tipoGastoId: parseInt(formData.tipoGastoId),

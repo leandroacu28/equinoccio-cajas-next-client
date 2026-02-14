@@ -159,27 +159,27 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
             {/* Fecha */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Fecha del Movimiento
+                Fecha del Movimiento <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <input
+                disabled
                 type="datetime-local"
-                required
                 value={formData.fecha}
                 onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all font-left"
+                className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all font-left opacity-60 cursor-not-allowed"
               />
             </div>
 
             {/* Caja Origen */}
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Caja Origen
+                Caja Origen <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <select
-                required
+                disabled
                 value={formData.cajaOrigenId}
                 onChange={(e) => setFormData({ ...formData, cajaOrigenId: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer font-left"
+                className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all cursor-not-allowed font-left opacity-60"
               >
                 {cajas.map((c) => (
                   <option key={c.id} value={c.id}>{c.descripcion}</option>
@@ -190,13 +190,13 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
             {/* Caja Destino */}
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Caja Destino
+                Caja Destino <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <select
-                required
+                disabled
                 value={formData.cajaDestinoId}
                 onChange={(e) => setFormData({ ...formData, cajaDestinoId: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer font-left"
+                className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all cursor-not-allowed font-left opacity-60"
               >
                 {cajas.map((c) => (
                   <option key={c.id} value={c.id}>{c.descripcion}</option>
@@ -207,17 +207,17 @@ export default function EditarMovimientoPage({ params }: { params: Promise<{ id:
             {/* Monto */}
             <div className="md:col-span-2 text-left">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide opacity-80">
-                Monto
+                Monto <span className="text-xs font-normal text-gray-500">(No editable)</span>
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                 <input
+                  disabled
                   type="number"
                   step="0.01"
-                  required
                   value={formData.monto}
                   onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-3 pl-8 pr-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all font-bold"
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 border-none rounded-xl py-3 pl-8 pr-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all font-bold opacity-60 cursor-not-allowed"
                 />
               </div>
             </div>

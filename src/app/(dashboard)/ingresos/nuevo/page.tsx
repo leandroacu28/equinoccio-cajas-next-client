@@ -67,7 +67,11 @@ export default function NuevoIngresoPage() {
         },
         body: JSON.stringify({
           ...form,
-          fecha: `${form.fecha}T12:00:00Z`,
+          fecha: (() => {
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0];
+            return new Date(`${form.fecha}T${timeString}`).toISOString();
+          })(),
           cajaId: parseInt(form.cajaId),
           tipoIngresoId: parseInt(form.tipoIngresoId),
           monto: parseFloat(form.monto),

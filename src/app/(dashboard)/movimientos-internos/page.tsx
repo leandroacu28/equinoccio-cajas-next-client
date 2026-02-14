@@ -44,6 +44,27 @@ export default function MovimientosInternosPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'id', direction: 'desc' });
+
+  const sortedMovimientos = [...movimientos].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    
+    // Handle specific types if needed
+    let aValue: any = a[key as keyof Movimiento];
+    let bValue: any = b[key as keyof Movimiento];
+    
+    if (key === 'fecha') {
+        aValue = new Date(a.fecha).getTime();
+        bValue = new Date(b.fecha).getTime();
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const fetchMetadata = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${getToken()}` };
@@ -359,7 +380,20 @@ export default function MovimientosInternosPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nº Mov.</th>
+                <th 
+                  className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  onClick={() => {
+                    const direction = sortConfig?.key === 'id' && sortConfig.direction === 'desc' ? 'asc' : 'desc';
+                    setSortConfig({ key: 'id', direction });
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    Nº Mov.
+                    {sortConfig?.key === 'id' && (
+                      <span className="text-blue-500">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Caja Origen</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Caja Destino</th>
@@ -376,12 +410,12 @@ export default function MovimientosInternosPage() {
                     <td colSpan={8} className="px-6 py-4"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-full"></div></td>
                   </tr>
                 ))
-              ) : movimientos.length === 0 ? (
+              ) : sortedMovimientos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-500 italic">No se encontraron movimientos</td>
                 </tr>
               ) : (
-                movimientos.map((m) => (
+                sortedMovimientos.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
                     <td className="px-6 py-4 text-sm font-bold text-blue-600 dark:text-blue-400">#{m.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
