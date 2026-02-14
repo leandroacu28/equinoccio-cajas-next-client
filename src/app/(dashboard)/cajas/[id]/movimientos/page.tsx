@@ -111,6 +111,7 @@ export default function MovimientosCajaPage() {
       Fecha: new Date(m.fecha).toLocaleDateString("es-AR", { timeZone: "UTC" }),
       Tipo: m.tipo,
       Detalle: m.detalle,
+      Observación: m.observaciones || "-",
       Debe: m.debe,
       Haber: m.haber,
       Saldo: m.saldo
@@ -223,6 +224,7 @@ export default function MovimientosCajaPage() {
                   {[
                     { key: "fecha", label: "Fecha", align: "left" },
                     { key: "", label: "Tipo", align: "left" },
+                    { key: "", label: "Observación", align: "left" },
                     { key: "", label: "Debe", align: "right" },
                     { key: "", label: "Haber", align: "right" },
                     { key: "", label: "Saldo", align: "right" },
@@ -263,6 +265,9 @@ export default function MovimientosCajaPage() {
                         </span>
                         <div className="text-xs text-gray-500 mt-1 font-medium">{m.detalle}</div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {m.observaciones || "-"}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-emerald-600 dark:text-emerald-400">
                         {m.debe > 0 ? `$${m.debe.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '-'}
                       </td>
@@ -276,7 +281,7 @@ export default function MovimientosCajaPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/50">
+                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/50">
                       <div className="flex flex-col items-center justify-center">
                         <svg className="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
