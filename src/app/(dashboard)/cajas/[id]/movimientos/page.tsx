@@ -20,6 +20,7 @@ interface Movement {
   debe: number;
   haber: number;
   saldo: number;
+  createdAt: string;
 }
 
 interface Caja {
@@ -58,7 +59,15 @@ export default function MovimientosCajaPage() {
     if (sortConfig.key === 'fecha') {
       const dateA = new Date(a.fecha).getTime();
       const dateB = new Date(b.fecha).getTime();
-      return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+      const diff = sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+      
+      if (diff === 0) {
+        // Tie-breaker: creation date
+        const createdA = new Date(a.createdAt).getTime();
+        const createdB = new Date(b.createdAt).getTime();
+        return sortConfig.direction === 'asc' ? createdA - createdB : createdB - createdA;
+      }
+      return diff;
     }
     return 0;
   });
