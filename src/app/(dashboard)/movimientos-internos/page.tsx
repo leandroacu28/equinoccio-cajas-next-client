@@ -31,6 +31,8 @@ export default function MovimientosInternosPage() {
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [origenFilter, setOrigenFilter] = useState("");
   const [destinoFilter, setDestinoFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   
   const [cajas, setCajas] = useState<any[]>([]);
 
@@ -75,6 +77,15 @@ export default function MovimientosInternosPage() {
     }
   }, []);
 
+  const handleLast7Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    
+    setDateTo(end.toISOString().split('T')[0]);
+    setDateFrom(start.toISOString().split('T')[0]);
+  };
+
   const fetchMovimientos = useCallback(async () => {
     try {
       setLoading(true);
@@ -85,6 +96,8 @@ export default function MovimientosInternosPage() {
       }
       if (origenFilter) url += `&cajaOrigenId=${origenFilter}`;
       if (destinoFilter) url += `&cajaDestinoId=${destinoFilter}`;
+      if (dateFrom) url += `&from=${dateFrom}`;
+      if (dateTo) url += `&to=${dateTo}`;
 
       const res = await fetch(url, {
         headers: {
@@ -101,7 +114,7 @@ export default function MovimientosInternosPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchTerm, statusFilter, origenFilter, destinoFilter]);
+  }, [currentPage, pageSize, searchTerm, statusFilter, origenFilter, destinoFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     setUser(getUser());
@@ -115,7 +128,7 @@ export default function MovimientosInternosPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, origenFilter, destinoFilter]);
+  }, [searchTerm, statusFilter, origenFilter, destinoFilter, dateFrom, dateTo]);
 
   // Close dropdown when clicking outside or pressing Esc
   useEffect(() => {
@@ -288,6 +301,38 @@ export default function MovimientosInternosPage() {
             <option value="Activo">Habilitados</option>
             <option value="Inactivo">Deshabilitados</option>
           </select>
+        </div>
+
+        {/* Date Filters Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="relative">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="Desde"
+            />
+            <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Desde</span>
+          </div>
+          <div className="relative">
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="Hasta"
+            />
+            <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Hasta</span>
+          </div>
+          <div>
+            <button
+              onClick={handleLast7Days}
+              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all"
+            >
+              Últimos 7 días
+            </button>
+          </div>
         </div>
       </div>
 

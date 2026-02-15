@@ -48,6 +48,15 @@ export default function MovimientosCajaPage() {
     direction: 'desc' 
   });
 
+  const handleLast7Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    
+    setDateTo(end.toISOString().split('T')[0]);
+    setDateFrom(start.toISOString().split('T')[0]);
+  };
+
   const handleSort = (key: string) => {
     setSortConfig(current => ({
       key,
@@ -185,7 +194,7 @@ export default function MovimientosCajaPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div className="md:col-span-2 relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -223,6 +232,14 @@ export default function MovimientosCajaPage() {
               />
               <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Hasta</span>
             </div>
+          </div>
+          <div>
+             <button
+              onClick={handleLast7Days}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all"
+             >
+               Últimos 7 días
+             </button>
           </div>
         </div>
       </div>
