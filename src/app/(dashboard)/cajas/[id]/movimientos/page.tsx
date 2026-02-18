@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
 import { showError } from "@/lib/alerts";
@@ -23,6 +23,12 @@ interface Movement {
   createdAt: string;
 }
 
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+}
+
 interface Caja {
   id: number;
   descripcion: string;
@@ -37,10 +43,19 @@ export default function MovimientosCajaPage() {
   const [caja, setCaja] = useState<Caja | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
   // Filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Range dropdown
+  const [rangeDropdownOpen, setRangeDropdownOpen] = useState(false);
+  const rangeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ 
@@ -48,13 +63,43 @@ export default function MovimientosCajaPage() {
     direction: 'desc' 
   });
 
+  const handleToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setDateFrom(today);
+    setDateTo(today);
+    setRangeDropdownOpen(false);
+  };
+
   const handleLast7Days = () => {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 7);
-    
     setDateTo(end.toISOString().split('T')[0]);
     setDateFrom(start.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const handleLast30Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    setDateTo(end.toISOString().split('T')[0]);
+    setDateFrom(start.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const handleThisMonth = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    setDateFrom(firstDay.toISOString().split('T')[0]);
+    setDateTo(now.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const clearDateRange = () => {
+    setDateFrom("");
+    setDateTo("");
+    setRangeDropdownOpen(false);
   };
 
   const handleSort = (key: string) => {
@@ -107,20 +152,54 @@ export default function MovimientosCajaPage() {
       if (dateFrom) queryParams.append("from", dateFrom);
       if (dateTo) queryParams.append("to", dateTo);
       if (searchTerm) queryParams.append("search", searchTerm);
+      queryParams.append("page", currentPage.toString());
+      queryParams.append("limit", pageSize.toString());
 
       const res = await fetch(`${API_URL}/cajas/${params.id}/movimientos?${queryParams.toString()}`, { 
         headers: headers(),
         cache: 'no-store'
       });
       if (!res.ok) throw new Error("Error al cargar movimientos");
-      const data = await res.json();
-      setMovements(data);
+      const response = await res.json();
+      
+      // Handle response structure { data: [], total: 0 }
+      if (response.data && typeof response.total === 'number') {
+        setMovements(response.data);
+        setTotal(response.total);
+      } else {
+        // Fallback for old API if needed
+        setMovements(Array.isArray(response) ? response : []);
+        setTotal(Array.isArray(response) ? response.length : 0);
+      }
     } catch (err: any) {
       showError("Error", err.message);
     } finally {
       setLoading(false);
     }
-  }, [params.id, dateFrom, dateTo, searchTerm, headers]);
+  }, [params.id, dateFrom, dateTo, searchTerm, currentPage, pageSize, headers]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [dateFrom, dateTo, searchTerm]);
+
+  // Close range dropdown on outside click or Escape
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(e.target as Node)) {
+        setRangeDropdownOpen(false);
+      }
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setRangeDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
 
   useEffect(() => {
     if (params.id) {
@@ -194,8 +273,9 @@ export default function MovimientosCajaPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          <div className="md:col-span-2 relative">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
@@ -209,38 +289,110 @@ export default function MovimientosCajaPage() {
               className={`${inputClass} pl-10`}
             />
           </div>
-          <div>
-            <div className="relative">
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className={inputClass}
-                placeholder="Desde"
-              />
-              <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Desde</span>
-            </div>
+
+          {/* Range Dropdown */}
+          <div className="relative shrink-0" ref={rangeDropdownRef}>
+            <button
+              onClick={() => setRangeDropdownOpen(prev => !prev)}
+              className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                (dateFrom || dateTo)
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-600'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Seleccionar rango
+              {(dateFrom || dateTo) && (
+                <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-500" />
+              )}
+              <svg className={`h-4 w-4 transition-transform ${rangeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {rangeDropdownOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-80 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                {/* Date pickers — primero */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700 space-y-3">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rango personalizado</p>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className={inputClass}
+                    />
+                    <span className="absolute -top-2 left-2 bg-white dark:bg-gray-800 px-1 text-xs font-medium text-gray-500">Desde</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className={inputClass}
+                    />
+                    <span className="absolute -top-2 left-2 bg-white dark:bg-gray-800 px-1 text-xs font-medium text-gray-500">Hasta</span>
+                  </div>
+                </div>
+
+                {/* Quick buttons — debajo */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Acceso rápido</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleToday}
+                      className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      onClick={handleLast7Days}
+                      className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                    >
+                      7 días
+                    </button>
+                    <button
+                      onClick={handleLast30Days}
+                      className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                    >
+                      30 días
+                    </button>
+                    <button
+                      onClick={handleThisMonth}
+                      className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                    >
+                      Este Mes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end px-3 py-2.5">
+                  <button
+                    onClick={() => setRangeDropdownOpen(false)}
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-xs font-bold text-white transition-colors"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <div>
-            <div className="relative">
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className={inputClass}
-                placeholder="Hasta"
-              />
-              <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Hasta</span>
-            </div>
-          </div>
-          <div>
-             <button
-              onClick={handleLast7Days}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all"
-             >
-               Últimos 7 días
-             </button>
-          </div>
+
+          {/* Quitar filtros — fuera del dropdown, solo visible si hay fechas activas */}
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={clearDateRange}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 hover:border-red-300 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-all"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Quitar filtros
+            </button>
+          )}
         </div>
       </div>
 
@@ -327,6 +479,93 @@ export default function MovimientosCajaPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {total > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-800 px-6 py-4 bg-gray-50/30 dark:bg-gray-800/30">
+              <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <span>Mostrando {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} de {total}</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                >
+                  <option value={5}>5 por página</option>
+                  <option value={10}>10 por página</option>
+                  <option value={25}>25 por página</option>
+                  <option value={50}>50 por página</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Primera página"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Anterior"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: Math.ceil(total / pageSize) }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === Math.ceil(total / pageSize) || Math.abs(p - currentPage) <= 1)
+                  .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span key={`dots-${i}`} className="px-2 text-gray-400">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p as number)}
+                        className={`min-w-[36px] h-9 rounded-md text-sm font-medium transition-colors ${currentPage === p
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  disabled={currentPage === Math.ceil(total / pageSize)}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Siguiente"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  disabled={currentPage === Math.ceil(total / pageSize)}
+                  onClick={() => setCurrentPage(Math.ceil(total / pageSize))}
+                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Última página"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

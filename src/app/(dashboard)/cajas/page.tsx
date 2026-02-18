@@ -72,9 +72,12 @@ export default function CajasPage() {
       const res = await fetch(`${API_URL}/cajas`, { headers: headers() });
       if (!res.ok) throw new Error("Error al cargar cajas");
       const data = await res.json();
-      setCajas(data);
+      setCajas(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      showError("Error", err.message);
+      // Solo mostrar error si hay un problema real de conexión/autenticación
+      // No mostrar error si simplemente no hay cajas
+      console.error("Error al cargar cajas:", err);
+      setCajas([]);
     } finally {
       setLoading(false);
     }

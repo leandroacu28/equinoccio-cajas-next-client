@@ -42,10 +42,14 @@ export default function IngresosPage() {
   const [total, setTotal] = useState(0);
   const [user, setUser] = useState<any>(null);
 
-  // Dropdown state
+  // Dropdown state (row actions)
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Range dropdown
+  const [rangeDropdownOpen, setRangeDropdownOpen] = useState(false);
+  const rangeDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchMetadata = useCallback(async () => {
     try {
@@ -61,13 +65,43 @@ export default function IngresosPage() {
     }
   }, []);
 
+  const handleToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setDateFrom(today);
+    setDateTo(today);
+    setRangeDropdownOpen(false);
+  };
+
   const handleLast7Days = () => {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 7);
-    
     setDateTo(end.toISOString().split('T')[0]);
     setDateFrom(start.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const handleLast30Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    setDateTo(end.toISOString().split('T')[0]);
+    setDateFrom(start.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const handleThisMonth = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    setDateFrom(firstDay.toISOString().split('T')[0]);
+    setDateTo(now.toISOString().split('T')[0]);
+    setRangeDropdownOpen(false);
+  };
+
+  const clearDateRange = () => {
+    setDateFrom("");
+    setDateTo("");
+    setRangeDropdownOpen(false);
   };
 
   const fetchIngresos = useCallback(async () => {
@@ -114,7 +148,25 @@ export default function IngresosPage() {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, cajaFilter, tipoIngresoFilter, dateFrom, dateTo]);
 
-  // Close dropdown when clicking outside or pressing Esc
+  // Close range dropdown on outside click or Escape
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(e.target as Node)) {
+        setRangeDropdownOpen(false);
+      }
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setRangeDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
+
+  // Close row dropdown when clicking outside or pressing Esc
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const isOutsideDesktop = !dropdownRef.current || !dropdownRef.current.contains(event.target as Node);
@@ -321,36 +373,81 @@ export default function IngresosPage() {
           </select>
         </div>
 
-        {/* Date Filters Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="relative">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
-              placeholder="Desde"
-            />
-            <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Desde</span>
-          </div>
-          <div className="relative">
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
-              placeholder="Hasta"
-            />
-            <span className="absolute -top-2 left-2 bg-white dark:bg-gray-900 px-1 text-xs font-medium text-gray-500">Hasta</span>
-          </div>
-          <div>
+        {/* Date Range Dropdown Row */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative" ref={rangeDropdownRef}>
             <button
-              onClick={handleLast7Days}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all"
+              onClick={() => setRangeDropdownOpen(prev => !prev)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                (dateFrom || dateTo)
+                  ? 'border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-600'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+              }`}
             >
-              Últimos 7 días
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Seleccionar rango
+              {(dateFrom || dateTo) && (
+                <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-500" />
+              )}
+              <svg className={`h-4 w-4 transition-transform ${rangeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
+
+            {rangeDropdownOpen && (
+              <div className="absolute left-0 z-50 mt-2 w-80 origin-top-left rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                {/* Date pickers — primero */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700 space-y-3">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rango personalizado</p>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 transition-all"
+                    />
+                    <span className="absolute -top-2 left-2 bg-white dark:bg-gray-800 px-1 text-xs font-medium text-gray-500">Desde</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 transition-all"
+                    />
+                    <span className="absolute -top-2 left-2 bg-white dark:bg-gray-800 px-1 text-xs font-medium text-gray-500">Hasta</span>
+                  </div>
+                </div>
+                {/* Quick buttons — debajo */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Acceso rápido</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={handleToday} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all">Hoy</button>
+                    <button onClick={handleLast7Days} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all">7 días</button>
+                    <button onClick={handleLast30Days} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all">30 días</button>
+                    <button onClick={handleThisMonth} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all">Este Mes</button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end px-3 py-2.5">
+                  <button onClick={() => setRangeDropdownOpen(false)} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-xs font-bold text-white transition-colors">Aplicar</button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={clearDateRange}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-100 hover:border-red-300 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-all"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Quitar filtros
+            </button>
+          )}
         </div>
       </div>
 
