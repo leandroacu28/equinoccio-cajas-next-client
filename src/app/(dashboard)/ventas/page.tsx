@@ -35,7 +35,7 @@ export default function VentasPage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [activoFilter, setActivoFilter] = useState<"" | "true" | "false">("");
+  const [activoFilter, setActivoFilter] = useState<"" | "true" | "false">("true");
   const [cajaFilter, setCajaFilter] = useState("");
   const [clienteFilter, setClienteFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -175,6 +175,7 @@ export default function VentasPage() {
       Fecha: formatDate(v.fecha),
       Cliente: v.cliente.descripcion,
       Caja: v.caja.descripcion,
+      Observaciones: v.observaciones || "",
       Productos: v.productos?.length ?? 0,
       Monto: Number(v.monto),
       Estado: v.activo ? "Activo" : "Inactivo",
@@ -337,7 +338,7 @@ export default function VentasPage() {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr>
-                {["N° Venta", "Fecha", "Cliente", "Caja", "Productos", "Monto", "Estado", "Acciones"].map(h => (
+                {["N° Venta", "Fecha", "Cliente", "Caja", "Observaciones", "Monto", "Estado", "Acciones"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -367,14 +368,11 @@ export default function VentasPage() {
                   <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatDate(v.fecha)}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{v.cliente.descripcion}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{v.caja.descripcion}</td>
-                  <td className="px-4 py-3">
-                    {v.productos && v.productos.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                        {v.productos.length} ítem{v.productos.length !== 1 ? "s" : ""}
-                      </span>
+                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">
+                    {v.observaciones ? (
+                      <span className="block truncate" title={v.observaciones}>{v.observaciones}</span>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-gray-300 dark:text-gray-600">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{formatMoney(v.monto)}</td>
