@@ -7,8 +7,8 @@ import { showSuccess, showError } from "@/lib/alerts";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-interface Caja { id: number; descripcion: string; }
-interface Cliente { id: number; descripcion: string; }
+interface Caja { id: number; descripcion: string; activo: boolean; }
+interface Cliente { id: number; descripcion: string; activo: boolean; }
 interface VentaProducto {
   id: number;
   cantidad: number;
@@ -57,8 +57,10 @@ export default function EditarVentaPage() {
       fetch(`${API_URL}/clientes`, { headers: h }).then(r => r.json()),
       fetch(`${API_URL}/ventas/${ventaId}`, { headers: h }).then(r => r.json()),
     ]).then(([cajasData, clientesData, ventaData]) => {
-      setCajas(Array.isArray(cajasData) ? cajasData : []);
-      setClientes(Array.isArray(clientesData) ? clientesData : clientesData?.data || []);
+      const allCajas = Array.isArray(cajasData) ? cajasData : [];
+      setCajas(allCajas.filter((c: Caja) => c.activo || (ventaData?.caja && c.id === ventaData.caja.id)));
+      const allClientes = Array.isArray(clientesData) ? clientesData : clientesData?.data || [];
+      setClientes(allClientes.filter((c: Cliente) => c.activo || (ventaData?.cliente && c.id === ventaData.cliente.id)));
 
       if (ventaData && !ventaData.statusCode) {
         setFecha(ventaData.fecha ? ventaData.fecha.split("T")[0] : "");

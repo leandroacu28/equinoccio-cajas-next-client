@@ -25,6 +25,15 @@ interface Venta {
 interface Caja { id: number; descripcion: string; }
 interface Cliente { id: number; descripcion: string; }
 
+const formatDateUTC = (dateString: string) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("es-AR", { timeZone: "UTC" });
+};
+
+const formatMoney = (amount: number | string) => {
+  return Number(amount).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+};
+
 export default function VentasPage() {
   const router = useRouter();
 
@@ -54,6 +63,26 @@ export default function VentasPage() {
   // Metadata
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'id', direction: 'desc' });
+
+  const sortedVentas = [...ventas].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    
+    let aValue: any = (a as any)[key];
+    let bValue: any = (b as any)[key];
+    
+    if (key === 'fecha') {
+        aValue = new Date(a.fecha).getTime();
+        bValue = new Date(b.fecha).getTime();
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const headers = useCallback(() => ({
     "Content-Type": "application/json",
@@ -169,10 +198,10 @@ export default function VentasPage() {
   };
 
   const handleExportExcel = () => {
-    if (ventas.length === 0) return;
-    const dataToExport = ventas.map(v => ({
+    if (sortedVentas.length === 0) return;
+    const dataToExport = sortedVentas.map(v => ({
       "N° Venta": v.id,
-      Fecha: formatDate(v.fecha),
+      Fecha: formatDateUTC(v.fecha),
       Cliente: v.cliente.descripcion,
       Caja: v.caja.descripcion,
       Observaciones: v.observaciones || "",
@@ -337,11 +366,29 @@ export default function VentasPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
-              <tr>
-                {["N° Venta", "Fecha", "Cliente", "Caja", "Observaciones", "Monto", "Estado", "Acciones"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
+              <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-left">
+                  <th 
+                    className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                    onClick={() => {
+                        const direction = sortConfig?.key === 'id' && sortConfig.direction === 'desc' ? 'asc' : 'desc';
+                        setSortConfig({ key: 'id', direction });
+                    }}
+                  >
+                    <div className="flex items-center gap-1">
+                        N° Venta
+                        {sortConfig?.key === 'id' && (
+                            <span className="text-emerald-500">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Caja</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Observaciones</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monto</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-10">Acciones</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
@@ -351,7 +398,7 @@ export default function VentasPage() {
                     Cargando...
                   </div>
                 </td></tr>
-              ) : ventas.length === 0 ? (
+              ) : sortedVentas.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-16 text-center">
                   <svg className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -362,10 +409,10 @@ export default function VentasPage() {
                     Crear primera venta
                   </button>
                 </td></tr>
-              ) : ventas.map(v => (
+              ) : sortedVentas.map(v => (
                 <tr key={v.id} className={`transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!v.activo ? "opacity-60" : ""}`}>
                   <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">#{v.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatDate(v.fecha)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatDateUTC(v.fecha)}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{v.cliente.descripcion}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{v.caja.descripcion}</td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">

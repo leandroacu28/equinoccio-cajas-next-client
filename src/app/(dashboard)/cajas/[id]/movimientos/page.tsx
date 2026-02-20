@@ -439,7 +439,7 @@ export default function MovimientosCajaPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                          m.tipo === 'Ingreso' 
+                          m.tipo === 'Ingreso' || m.tipo === 'Venta'
                             ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-400/30"
                             : m.tipo === 'Gasto'
                             ? "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-400/30"
