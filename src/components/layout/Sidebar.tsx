@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { UserData } from "@/lib/auth";
 
-type NavigationItem = {
+export type NavigationItem = {
     name: string;
     href?: string;
     icon: React.ReactNode;
@@ -19,7 +19,7 @@ type NavigationItem = {
     }[];
 };
 
-const navigation: NavigationItem[] = [
+export const navigation: NavigationItem[] = [
     {
         name: "Inicio",
         href: "/home",

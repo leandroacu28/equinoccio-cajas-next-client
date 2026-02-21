@@ -753,7 +753,7 @@ export default function EstadisticasPage() {
                      />
                      <Tooltip 
                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                       formatter={(value: number) => [formatCurrency(value), 'Balance Acumulado']}
+                       formatter={(value: any) => [formatCurrency(value), 'Balance Acumulado']}
                        labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}
                      />
                      <Area 

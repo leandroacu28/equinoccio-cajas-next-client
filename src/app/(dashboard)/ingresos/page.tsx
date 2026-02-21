@@ -555,7 +555,20 @@ export default function IngresosPage() {
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                <th 
+                  className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  onClick={() => {
+                    const direction = sortConfig?.key === 'fecha' && sortConfig.direction === 'desc' ? 'asc' : 'desc';
+                    setSortConfig({ key: 'fecha', direction });
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    Fecha
+                    {sortConfig?.key === 'fecha' && (
+                      <span className="text-emerald-500">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo de Ingreso</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Observaciones</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Caja</th>

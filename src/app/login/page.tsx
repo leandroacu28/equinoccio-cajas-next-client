@@ -45,15 +45,15 @@ export default function LoginPage() {
         <div className="relative z-20 text-white max-w-lg">
           <div className="mb-8">
             <h2 className="text-5xl font-bold tracking-tight mb-1">Equinoccio</h2>
-            <h2 className="text-2xl font-light tracking-[0.3em] uppercase text-emerald-200">Distribuidoras</h2>
+            <h2 className="text-2xl font-light tracking-[0.3em] uppercase text-emerald-200">Cajas</h2>
           </div>
 
           <h1 className="text-4xl font-bold mb-6 leading-tight">
-            Sistema de Gestión Interna
+            Sistema de Control Integral de Cajas
           </h1>
 
           <p className="text-lg text-emerald-100 leading-relaxed font-light">
-            Plataforma integral para la administración, control y seguimiento de las operaciones de distribución.
+            Plataforma integral para el control, registro y seguimiento de ingresos, egresos, ventas y movimientos entre cajas.
           </p>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function LoginPage() {
               <div className="text-center mb-6">
                 <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-500">Equinoccio</span>
                 <br />
-                <span className="text-sm tracking-[0.25em] font-medium text-gray-500 dark:text-gray-400 uppercase">Distribuidoras</span>
+                <span className="text-sm tracking-[0.25em] font-medium text-gray-500 dark:text-gray-400 uppercase">Cajas</span>
               </div>
 
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-800">
