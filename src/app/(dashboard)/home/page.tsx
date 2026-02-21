@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getToken, getUser } from "@/lib/auth";
 import {
   BarChart,
@@ -30,11 +31,13 @@ interface DashboardData {
   chartData: {
     name: string;
     ingresos: number;
+    ventas: number;
     gastos: number;
   }[];
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBalance, setShowBalance] = useState(true);
@@ -155,7 +158,10 @@ export default function HomePage() {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Income Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+        <div 
+          onClick={() => router.push('/ingresos')}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:-translate-y-1 transform duration-200"
+        >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,7 +179,10 @@ export default function HomePage() {
         </div>
 
         {/* Expenses Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+        <div 
+          onClick={() => router.push('/gastos')}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:-translate-y-1 transform duration-200"
+        >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-600 dark:text-rose-400">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -191,7 +200,10 @@ export default function HomePage() {
         </div>
 
         {/* Sales Card (Total Ventas) */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+        <div 
+          onClick={() => router.push('/ventas')}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:-translate-y-1 transform duration-200"
+        >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,6 +229,10 @@ export default function HomePage() {
              <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 <span className="text-gray-500 dark:text-gray-400">Ingresos</span>
+             </div>
+             <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-gray-500 dark:text-gray-400">Ventas</span>
              </div>
              <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-rose-500" />
@@ -245,7 +261,8 @@ export default function HomePage() {
                 cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
               />
-              <Bar dataKey="ingresos" name="Ingresos" fill="#10B981" radius={[4, 4, 0, 0]} barSize={8} />
+              <Bar dataKey="ingresos" name="Ingresos" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} barSize={8} />
+              <Bar dataKey="ventas" name="Ventas" stackId="a" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={8} />
               <Bar dataKey="gastos" name="Gastos" fill="#F43F5E" radius={[4, 4, 0, 0]} barSize={8} />
             </BarChart>
           </ResponsiveContainer>

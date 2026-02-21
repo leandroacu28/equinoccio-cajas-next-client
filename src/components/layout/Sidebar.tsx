@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { UserData } from "@/lib/auth";
@@ -122,6 +123,16 @@ const navigation: NavigationItem[] = [
                 )
             },
         ]
+    },
+    {
+        name: "Estadísticas",
+        href: "/estadisticas",
+        id: "estadisticas",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        )
     },
     {
         name: "Configuraciones",
@@ -287,11 +298,11 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, user }: SidebarProps) {
                 {/* Logo area */}
                 <div className={`flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ${collapsed ? "px-2" : "px-6"}`}>
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white font-bold text-lg">
-                            E
+                        <div className="flex-shrink-0 flex items-center justify-center">
+                            <Image src="/equinoccio.webp" alt="Equinoccio Logo" width={32} height={32} />
                         </div>
                         <span className={`text-lg font-bold text-gray-900 dark:text-white tracking-tight whitespace-nowrap transition-opacity duration-300 ${collapsed ? "opacity-0 w-0" : "opacity-100"}`}>
-                            Equinoccio
+                            Equinoccio-Cajas
                         </span>
                     </div>
                 </div>
